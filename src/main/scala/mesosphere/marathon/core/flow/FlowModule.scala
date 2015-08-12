@@ -1,17 +1,20 @@
 package mesosphere.marathon.core.flow
 
+import akka.event.EventStream
 import mesosphere.marathon.MarathonSchedulerDriverHolder
 import mesosphere.marathon.core.base.Clock
-import mesosphere.marathon.core.flow.impl.{ OfferMatcherLaunchTokensActor, ReviveOffersActor }
+import mesosphere.marathon.core.flow.impl.{ OfferReviverDelegate, OfferMatcherLaunchTokensActor, ReviveOffersActor }
 import mesosphere.marathon.core.leadership.LeadershipModule
 import mesosphere.marathon.core.matcher.manager.OfferMatcherManager
 import mesosphere.marathon.core.task.bus.TaskStatusObservables
+import org.slf4j.LoggerFactory
 import rx.lang.scala.Observable
 
 /**
   * This module contains code for managing the flow/backpressure of the application.
   */
 class FlowModule(leadershipModule: LeadershipModule) {
+  private[this] val log = LoggerFactory.getLogger(getClass)
 
   /**
     * Call `reviveOffers` of the `SchedulerDriver` interface whenever there is new interest
@@ -24,12 +27,23 @@ class FlowModule(leadershipModule: LeadershipModule) {
     */
   def reviveOffersWhenOfferMatcherManagerSignalsInterest(
     clock: Clock, conf: ReviveOffersConfig,
-    offersWanted: Observable[Boolean], driverHolder: MarathonSchedulerDriverHolder): Unit = {
-    lazy val reviveOffersActor = ReviveOffersActor.props(
-      clock, conf,
-      offersWanted, driverHolder
-    )
-    leadershipModule.startWhenLeader(reviveOffersActor, "reviveOffersWhenWanted")
+    marathonEventStream: EventStream,
+    offersWanted: Observable[Boolean],
+    driverHolder: MarathonSchedulerDriverHolder): Option[OfferReviver] = {
+
+    if (conf.shouldReviveOffersForNewApps) {
+      lazy val reviveOffersActor = ReviveOffersActor.props(
+        clock, conf, marathonEventStream,
+        offersWanted, driverHolder
+      )
+      val actorRef = leadershipModule.startWhenLeader(reviveOffersActor, "reviveOffersWhenWanted")
+      log.info(s"Calling reviveOffers is enabled. Use --${conf.disableReviveOffersForNewApps.name} to disable.")
+      Some(new OfferReviverDelegate(actorRef))
+    }
+    else {
+      log.info(s"Calling reviveOffers is disabled. Use --${conf.disableReviveOffersForNewApps.name} to enable.")
+      None
+    }
   }
 
   /**
