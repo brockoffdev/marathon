@@ -109,8 +109,9 @@ object MarathonBuild extends Build {
     javacOptions in Compile ++= Seq("-encoding", "UTF-8", "-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation"),
     resolvers ++= Seq(
       "Mesosphere Public Repo"    at "http://downloads.mesosphere.io/maven",
-      "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/",
-      "Spray Maven Repository"    at "http://repo.spray.io/"
+      "Typesafe Releases"         at "http://repo.typesafe.com/typesafe/releases/",
+      "Spray Maven Repository"    at "http://repo.spray.io/",
+      "Sonatype Public Repo"      at "http://oss.sonatype.org/content/repositories/releases"
     ),
     sourceGenerators in Compile <+= buildInfo,
     fork in Test := true,
@@ -233,6 +234,7 @@ object Dependencies {
     jsonSchemaValidator % "compile",
     twitterZk % "compile",
     rxScala % "compile",
+    graphite % "compile",
 
     // test
     Test.scalatest % "test",
@@ -262,6 +264,7 @@ object Dependency {
     val PlayJson = "2.3.7"
     val JsonSchemaValidator = "2.2.6"
     val RxScala = "0.25.0"
+    val Graphite = "3.1.2"
 
     // test deps versions
     val Mockito = "1.9.5"
@@ -294,6 +297,7 @@ object Dependency {
   val jsonSchemaValidator = "com.github.fge" % "json-schema-validator" % V.JsonSchemaValidator
   val twitterZk = "com.twitter" %% "util-zk" % V.TwitterZk
   val rxScala = "io.reactivex" %% "rxscala" % V.RxScala
+  val graphite = "io.dropwizard.metrics" % "metrics-graphite" % V.Graphite
 
   object Test {
     val scalatest = "org.scalatest" %% "scalatest" % V.ScalaTest
